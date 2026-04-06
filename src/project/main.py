@@ -1,32 +1,26 @@
-import PySide6.QtWidgets as QtWidgets
-import PySide6.QtCore as QtCore
-class FullScreenApp(QtWidgets.QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        self.showMaximized()
-        self.setStyleSheet("background-color: black;")
-        self.label = QtWidgets.QLabel("Press Esc to toggle full screen", self)
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.label.setStyleSheet("color: white; font-size: 24px;")
-        self.label.move(0, 0)
-        self.label.resize(self.width(), self.height())
-        self._geom = self.geometry()
-        self.show()
+import sys
+import os
+from PySide6 import QtCore, QtWidgets, QtGui
 
-    def toggle_geom(self):
-        if self._geom is None:
-            self._geom = self.geometry()
-            self.showMaximized()
-        else:
-            self.showNormal()
-            self.setGeometry(self._geom)
-            self._geom = None
+class Program(QtWidgets.QWidget):
+	def __init__(self):
+		super().__init__()
+		self.setWindowTitle("Time For a Break!")
+		self.setStyleSheet("background-color: lightblue; color: black; font-size: 24px;")
+		self.label = QtWidgets.QLabel("It is time to take a break!", alignment=QtCore.Qt.AlignCenter)
+		self.layout = QtWidgets.QVBoxLayout()
+		self.layout.addWidget(self.label)
+		self.setLayout(self.layout)
 
-    def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Escape:
-            self.toggle_geom()
 
-app = QtWidgets.QApplication([])
-window = FullScreenApp()
-app.exec()
+if __name__ == "__main__":
+	app = QtWidgets.QApplication([])
+
+	widgets = []
+	for screen in app.screens():
+		widget = Program()
+		widget.setGeometry(screen.geometry())
+		widget.showFullScreen()
+		widgets.append(widget)
+
+	sys.exit(app.exec())
