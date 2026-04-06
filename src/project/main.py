@@ -1,13 +1,10 @@
-from ctypes import alignment
 import sys
-import os
-import time
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtWidgets
 
 class Program(QtWidgets.QWidget):
 	def __init__(self):
 		super().__init__()
-		self.time_left = 600 # 10
+		self.time_left = 5 # 10
 		self.setWindowTitle("Time For a Break!")
 		self.setStyleSheet("background-color: lightblue; color: black; font-size: 40px;")
 		self.label = QtWidgets.QLabel("It is time to take a break!", alignment=QtCore.Qt.AlignCenter)
@@ -26,8 +23,16 @@ class Program(QtWidgets.QWidget):
 		if self.time_left <= 0:
 			self.timer.stop()
 			self.countdown.setText("Enjoy!")
+			self.button = QtWidgets.QPushButton("Quit")
+			self.button.clicked.connect(lambda: self.close_windows())
+			self.layout.addWidget(self.button)
 		else:
 			self.countdown.setText(f"{self.time_left // 60} min {self.time_left % 60} sec")
+
+	@QtCore.Slot()
+	def close_windows(self):
+		for widget in QtWidgets.QApplication.topLevelWidgets():
+			widget.close()
 
 if __name__ == "__main__":
 	app = QtWidgets.QApplication([])
