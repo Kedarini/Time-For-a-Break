@@ -1,5 +1,13 @@
 import sys
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QWidget, QVBoxLayout, QSpacerItem, QSizePolicy
+from PySide6.QtWidgets import (
+    QApplication,
+    QLabel,
+    QPushButton,
+    QWidget,
+    QVBoxLayout,
+    QSpacerItem,
+    QSizePolicy,
+)
 from PySide6.QtCore import QTimer, Qt, Slot
 
 
@@ -64,13 +72,17 @@ class Program(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.layout.addSpacerItem(QSpacerItem(20, 100, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        self.layout.addSpacerItem(
+            QSpacerItem(20, 100, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        )
         self.layout.addWidget(self.label, alignment=Qt.AlignCenter)
         self.layout.addSpacing(20)
         self.layout.addWidget(self.countdown, alignment=Qt.AlignCenter)
         self.layout.addSpacing(40)
         self.layout.addWidget(self.button, alignment=Qt.AlignCenter)
-        self.layout.addSpacerItem(QSpacerItem(20, 100, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        self.layout.addSpacerItem(
+            QSpacerItem(20, 100, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        )
 
         self.setLayout(self.layout)
 
