@@ -1,41 +1,66 @@
+from sqlite3.dbapi2 import connect
 import sys
-from PySide6 import QtCore, QtWidgets
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QWidget, QVBoxLayout
+from PySide6.QtCore import QTimer, Qt, Slot
 
-class Program(QtWidgets.QWidget):
+class Program(QWidget):
 	def __init__(self):
 		super().__init__()
-		self.time_left = 5 # 10
-		self.setWindowTitle("Time For a Break!")
-		self.setStyleSheet("background-color: lightblue; color: black; font-size: 40px;")
-		self.label = QtWidgets.QLabel("It is time to take a break!", alignment=QtCore.Qt.AlignCenter)
-		self.timer = QtCore.QTimer()
-		self.timer.timeout.connect(self.update_countdown)
-		self.countdown = QtWidgets.QLabel(f"{self.time_left // 60} min {self.time_left % 60} sec", alignment=QtCore.Qt.AlignCenter)
-		self.layout = QtWidgets.QVBoxLayout()
+
+		self.duration = 5 # 5 minutes
+
+		self.setWindowTitle("Time For a Break")
+		self.setStyleSheet("""
+			background-color: #89986D;
+			color: #F6F0D7;
+			font-size: 40px;
+			""")
+
+		self.label = QLabel(
+			"It is time to take a break!",
+			alignment=Qt.AlignCenter
+		)
+		self.label.show()
+
+		self.countdown = QLabel(
+			f"{self.duration // 60} min {self.duration % 60} sec",
+			alignment = Qt.AlignCenter
+		)
+
+		self.button = QPushButton("Break done!")
+		self.button.setStyleSheet("""
+			width: 10vw
+			""")
+		self.button.clicked.connect(lambda: self.quit())
+
+		self.layout = QVBoxLayout()
 		self.layout.addWidget(self.label)
 		self.layout.addWidget(self.countdown)
 		self.setLayout(self.layout)
 
+		self.timer = QTimer()
+		self.timer.timeout.connect(self.timer_update)
 		self.timer.start(1000)
 
-	def update_countdown(self):
-		self.time_left -= 1
-		if self.time_left <= 0:
+	def timer_update(self):
+		self.duration -= 1
+		if self.duration <= 0:
 			self.timer.stop()
-			self.countdown.setText("Enjoy!")
-			self.button = QtWidgets.QPushButton("Quit")
-			self.button.clicked.connect(lambda: self.close_windows())
 			self.layout.addWidget(self.button)
 		else:
-			self.countdown.setText(f"{self.time_left // 60} min {self.time_left % 60} sec")
+			self.countdown.setText(
+				f"{self.duration // 60} min {self.duration % 60} sec"
+			)
 
-	@QtCore.Slot()
-	def close_windows(self):
-		for widget in QtWidgets.QApplication.topLevelWidgets():
+
+	@Slot()
+	def quit(self):
+		for widget in QApplication.topLevelWidgets():
 			widget.close()
 
+
 if __name__ == "__main__":
-	app = QtWidgets.QApplication([])
+	app = QApplication([])
 
 	widgets = []
 	for screen in app.screens():
