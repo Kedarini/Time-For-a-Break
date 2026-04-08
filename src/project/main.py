@@ -1,12 +1,15 @@
 import sys
 
 from PySide6.QtCore import Qt, QTimer, Slot
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QSpacerItem,
+    QSystemTrayIcon,
     QVBoxLayout,
     QWidget,
 )
@@ -20,7 +23,6 @@ class Program(QWidget):
 
         self.setWindowTitle("Time For a Break")
 
-        # ✅ Your styles (unchanged)
         self.setStyleSheet("""
             QWidget {
                 background-color: #2E3A2F;
@@ -55,6 +57,16 @@ class Program(QWidget):
                 background-color: #7E8C6A;
             }
         """)
+
+        # System tray
+        self.menu = QMenu()
+
+        self.btn_quit = QAction("Quit")
+        self.menu.addAction(self.btn_quit)
+
+        self.system_tray = QSystemTrayIcon()
+        self.system_tray.show()
+        self.system_tray.setContextMenu(self.menu)
 
         # Title
         self.label = QLabel("Time to take a break")
