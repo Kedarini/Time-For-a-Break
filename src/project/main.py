@@ -1,23 +1,26 @@
 import sys
+
+from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
     QPushButton,
-    QWidget,
-    QVBoxLayout,
-    QSpacerItem,
     QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import QTimer, Qt, Slot
 
 
 class Program(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.duration = 1  # 5 minutes
+        self.duration = 300  # 5 minutes
 
         self.setWindowTitle("Time For a Break")
+
+        # ✅ Your styles (unchanged)
         self.setStyleSheet("""
             QWidget {
                 background-color: #2E3A2F;
@@ -68,7 +71,7 @@ class Program(QWidget):
         self.button.clicked.connect(self.quit)
         self.button.hide()
 
-        # Layout
+        # Layout (your spacing preserved)
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
 
@@ -86,9 +89,12 @@ class Program(QWidget):
 
         self.setLayout(self.layout)
 
-        # Timer logic
+        # Countdown timer
         self.timer = QTimer()
         self.timer.timeout.connect(self.timer_update)
+
+    def start_break(self):
+        self.showFullScreen()
         self.timer.start(1000)
 
     def format_time(self):
@@ -98,6 +104,7 @@ class Program(QWidget):
 
     def timer_update(self):
         self.duration -= 1
+
         if self.duration <= 0:
             self.timer.stop()
             self.countdown.setText("00:00")
@@ -115,10 +122,13 @@ if __name__ == "__main__":
     app = QApplication([])
 
     widgets = []
+
     for screen in app.screens():
         widget = Program()
         widget.setGeometry(screen.geometry())
-        widget.showFullScreen()
         widgets.append(widget)
+
+        # Delay showing window by 10 seconds
+        QTimer.singleShot(10000, widget.start_break)
 
     sys.exit(app.exec())
