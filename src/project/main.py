@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt, QTimer, QSettings, QObject
 from PySide6.QtGui import QAction, QIcon, QColor, QPainter, QPixmap, QActionGroup
 from PySide6.QtWidgets import (
     QApplication,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QSystemTrayIcon,
@@ -64,7 +65,6 @@ class BreakWindow(QWidget):
             }
         """)
 
-        # Widgets
         self.lbl_title = QLabel("Time For a Break")
         self.lbl_title.setAlignment(Qt.AlignCenter)
         self.lbl_title.setStyleSheet(
@@ -114,13 +114,10 @@ class BreakWindow(QWidget):
         """)
         self.btn_skip.clicked.connect(QApplication.quit)
 
-        # Layout — skip floats top-right, rest is centred
         root = QVBoxLayout(self)
         root.setContentsMargins(20, 16, 20, 0)
         root.setSpacing(0)
 
-        # top row: skip pinned right
-        from PySide6.QtWidgets import QHBoxLayout
         top_row = QHBoxLayout()
         top_row.addStretch()
         top_row.addWidget(self.btn_skip)
@@ -136,7 +133,6 @@ class BreakWindow(QWidget):
         root.addWidget(self.btn_done, alignment=Qt.AlignCenter)
         root.addStretch(3)
 
-        # Countdown timer
         self.timer = QTimer()
         self.timer.timeout.connect(self._tick)
 
@@ -186,71 +182,85 @@ class BreakController(QObject):
     # ── Tray menu ─────────────────────────────────────────────────
 
     def _rebuild_menu(self):
-        menu = QMenu()
-        menu.setStyleSheet(TRAY_STYLE)
+        # Everything stored on self — nothing gets garbage collected
+        self._menu = QMenu()
+        self._menu.setStyleSheet(TRAY_STYLE)
 
+        # Status
         rem = self.delay_timer.remainingTime()
         status = f"Next break in ~{max(rem // 60000, 1)} min" if rem > 0 else "Break in progress"
-        status_act = QAction(status)
-        status_act.setEnabled(False)
-        menu.addAction(status_act)
-        menu.addSeparator()
+        self._status_act = QAction(status, self._menu)
+        self._status_act.setEnabled(False)
+        self._menu.addAction(self._status_act)
+        self._menu.addSeparator()
 
-        act_now = QAction("⏱  Take Break Now")
-        act_now.triggered.connect(self._launch_break)
-        menu.addAction(act_now)
+        # Take Break Now
+        self._act_now = QAction("⏱  Take Break Now", self._menu)
+        self._act_now.triggered.connect(self._launch_break)
+        self._menu.addAction(self._act_now)
 
-        snooze_menu = QMenu("⏸  Snooze", menu)
-        snooze_menu.setStyleSheet(TRAY_STYLE)
+        # Snooze submenu
+        self._snooze_menu = QMenu("⏸  Snooze", self._menu)
+        self._snooze_menu.setStyleSheet(TRAY_STYLE)
+        self._snooze_actions = []
         for label, mins in [("5 minutes", 5), ("15 minutes", 15), ("30 minutes", 30), ("1 hour", 60)]:
-            a = QAction(label)
-            a.triggered.connect(lambda _, m=mins: self._snooze(m))
-            snooze_menu.addAction(a)
-        menu.addMenu(snooze_menu)
+            a = QAction(label, self._snooze_menu)
+            a.triggered.connect(lambda checked=False, m=mins: self._snooze(m))
+            self._snooze_menu.addAction(a)
+            self._snooze_actions.append(a)
+        self._menu.addMenu(self._snooze_menu)
 
-        menu.addSeparator()
+        self._menu.addSeparator()
 
-        dur_menu = QMenu("⏲  Break Duration", menu)
-        dur_menu.setStyleSheet(TRAY_STYLE)
-        dur_group = QActionGroup(self)
-        dur_group.setExclusive(True)
+        # Break Duration submenu
+        self._dur_menu = QMenu("⏲  Break Duration", self._menu)
+        self._dur_menu.setStyleSheet(TRAY_STYLE)
+        self._dur_group = QActionGroup(self)
+        self._dur_group.setExclusive(True)
+        self._dur_actions = []
         for label, secs in [("1 min", 60), ("2 min", 120), ("5 min", 300), ("10 min", 600)]:
-            a = QAction(label)
+            a = QAction(label, self._dur_menu)
             a.setCheckable(True)
             a.setChecked(secs == self.break_duration)
-            a.triggered.connect(lambda _, s=secs: self._set_break_duration(s))
-            dur_group.addAction(a)
-            dur_menu.addAction(a)
-        menu.addMenu(dur_menu)
+            a.triggered.connect(lambda checked=False, s=secs: self._set_break_duration(s))
+            self._dur_group.addAction(a)
+            self._dur_menu.addAction(a)
+            self._dur_actions.append(a)
+        self._menu.addMenu(self._dur_menu)
 
-        interval_menu = QMenu("🔁  Break Every", menu)
-        interval_menu.setStyleSheet(TRAY_STYLE)
-        int_group = QActionGroup(self)
-        int_group.setExclusive(True)
+        # Break Every submenu
+        self._interval_menu = QMenu("🔁  Break Every", self._menu)
+        self._interval_menu.setStyleSheet(TRAY_STYLE)
+        self._int_group = QActionGroup(self)
+        self._int_group.setExclusive(True)
+        self._int_actions = []
         for label, secs in [("10 min", 600), ("20 min", 1200), ("30 min", 1800), ("45 min", 2700), ("60 min", 3600)]:
-            a = QAction(label)
+            a = QAction(label, self._interval_menu)
             a.setCheckable(True)
             a.setChecked(secs == self.break_every)
-            a.triggered.connect(lambda _, s=secs: self._set_break_every(s))
-            int_group.addAction(a)
-            interval_menu.addAction(a)
-        menu.addMenu(interval_menu)
+            a.triggered.connect(lambda checked=False, s=secs: self._set_break_every(s))
+            self._int_group.addAction(a)
+            self._interval_menu.addAction(a)
+            self._int_actions.append(a)
+        self._menu.addMenu(self._interval_menu)
 
-        menu.addSeparator()
+        self._menu.addSeparator()
 
-        skip_act = QAction("👁  Show Skip Button")
-        skip_act.setCheckable(True)
-        skip_act.setChecked(self.show_skip)
-        skip_act.triggered.connect(self._toggle_skip)
-        menu.addAction(skip_act)
+        # Show Skip Button toggle
+        self._skip_act = QAction("👁  Show Skip Button", self._menu)
+        self._skip_act.setCheckable(True)
+        self._skip_act.setChecked(self.show_skip)
+        self._skip_act.triggered.connect(lambda checked: self._toggle_skip(checked))
+        self._menu.addAction(self._skip_act)
 
-        menu.addSeparator()
+        self._menu.addSeparator()
 
-        quit_act = QAction("✕  Quit")
-        quit_act.triggered.connect(QApplication.quit)
-        menu.addAction(quit_act)
+        # Quit
+        self._quit_act = QAction("✕  Quit", self._menu)
+        self._quit_act.triggered.connect(QApplication.quit)
+        self._menu.addAction(self._quit_act)
 
-        self.tray.setContextMenu(menu)
+        self.tray.setContextMenu(self._menu)
 
     # ── Actions ───────────────────────────────────────────────────
 
@@ -272,7 +282,12 @@ class BreakController(QObject):
     def _snooze(self, minutes: int):
         self.delay_timer.stop()
         self.delay_timer.start(minutes * 60 * 1000)
-        self.tray.showMessage("Snoozed", f"Next break in {minutes} min.", QSystemTrayIcon.MessageIcon.Information, 3000)
+        self.tray.showMessage(
+            "Snoozed",
+            f"Next break in {minutes} min.",
+            QSystemTrayIcon.MessageIcon.Information,
+            3000,
+        )
         self._rebuild_menu()
 
     # ── Break lifecycle ───────────────────────────────────────────
